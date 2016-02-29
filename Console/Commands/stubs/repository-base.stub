@@ -1,0 +1,54 @@
+<?php
+
+namespace App\Repositories;
+
+abstract class BaseRepository
+{
+    protected $model;
+    static $modelCache = [];
+
+    public function getModel($n)
+	{
+		return $this->model;
+	}
+
+    public function getPaginate($n)
+	{
+		return $this->model->paginate($n);
+	}
+
+	public function store(Array $inputs)
+	{
+		$row = $this->model->create($inputs);
+		static::$modelCache[$row->id] = $row;;
+		return $row;
+	}
+
+	public function getById($id)
+	{
+		if(isset(static::$modelCache[$id])) 
+			return static::$modelCache[$id];
+		return $this->model->findOrFail($id);
+	}
+
+	public function update($id, Array $inputs)
+	{
+		$this->getById($id)->fill($inputs)->save();
+		return $this->getById($id);
+	}
+
+	public function save(Array $inputs, $id=null)
+	{
+		$id = !empty($id) ? $id : (isset($inputs['id']) ? $inputs['id'] : null);
+		if(null===$id)
+			return $this->store($inputs);
+		else
+			return $this->update($id, $inputs);
+	}
+
+	public function destroy($id)
+	{
+		$this->getById($id)->delete();
+		unset(static::$modelCache[$id]);
+	}
+}
